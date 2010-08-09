@@ -16,8 +16,13 @@ module Paperclip
     end    
     
     def round_corners(dst)
-      command = "\"#{ File.expand_path( @thumbnail.path ) }[0]\"\n#{ transformation }\n\"#{ File.expand_path(dst.path) }\"\n" 
-      Paperclip.run('convert',command)
+      options = [
+        "#{ File.expand_path(@thumbnail.path) }[0]",
+        transformation,
+        "#{ File.expand_path(dst.path) }"
+      ].flatten.compact      
+      
+      Paperclip.run('convert', *options)
       dst
     end
         

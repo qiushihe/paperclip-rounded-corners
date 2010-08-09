@@ -20,6 +20,11 @@ You probably want to make sure the output format can handle transparency.
 
 The radius values should be in pixels and will be applied _after_ the geometry transformation.
 
+Required: paperclip modification
+=============
+In order for the plugin to work, also apply the patch proposed here:
+http://stackoverflow.com/questions/3382443/paperclip-error-no-decode-delegate-for-this-image-format
+
 
 Limitations
 =============

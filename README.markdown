@@ -12,7 +12,7 @@ You probably want to make sure the output format can handle transparency.
 
     class Image < ActiveRecord::Base
       has_attachached_file :avatar, :processors => [:round_corners], :styles => {
-        :style1 => {:border_radius => 10, :format => :png, :geometry => '200x200', :format => :png, :geometry => '200x200'}
+        :style1 => {:border_radius => 10, :format => :png, :geometry => '200x200'}
         :style2 => {:border_radius_topleft => 10, :border_radius_topright => 10, :format => :png, :geometry => '200x200'}
         :style3 => {:border_radius_bottom_left => 10, :border_radius_bottom_right => 10, :format => :png, :geometry => '200x200'}
         :style4 => {:border_radius_bottom_left => 10, :border_radius_bottom_right => 10, :format => :png, :geometry => '200x200'}    

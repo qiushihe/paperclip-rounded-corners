@@ -20,9 +20,9 @@ module Paperclip
         "#{ File.expand_path(@thumbnail.path) }[0]",
         transformation,
         "#{ File.expand_path(dst.path) }"
-      ].flatten.compact      
-      
-      Paperclip.run('convert', *options)
+      ].flatten.compact.join(" ")
+
+      Paperclip.run('convert', options)
       dst
     end
         

@@ -1,24 +1,36 @@
 module Paperclip
   class RoundCorners < Paperclip::Thumbnail
 
-    def self.round(source, destination, topleft, topright, bottomleft, bottomright)
+    def self.round(source, destination, radius)
       geometry = Paperclip::Geometry.from_file(source)
 
       width = geometry.width
       height = geometry.height
 
       # Need to `-1` becuase when drawing, the coordinates start from 0
-      left = width.to_i - 1
-      bottom = height.to_i - 1
+      radius -= 1
+      center_x = (width.to_f / 2).ceil - 1
+      center_y = (height.to_f / 2).ceil - 1
 
+      # Manuall create a blank, transparent canvas (instead of using -clone) to ensure the canvas
+      # always has a proper alpha channel
       transformation = " \\( -size #{width}x#{height} xc:none "
-      transformation << "-draw 'fill white circle #{topleft},#{topleft} #{topleft},0' "
-      transformation << "-draw 'fill white circle #{left-topright},#{topright} #{left},#{topright}' "
-      transformation << "-draw 'fill white circle #{bottomleft},#{bottom-bottomleft} #{bottomleft},#{bottom}' "
-      transformation << "-draw 'fill white circle #{left-bottomright},#{bottom-bottomright} #{left},#{bottom-bottomright}' "
-      transformation << "-draw 'fill white rectangle #{topleft},0 #{left-topright},#{bottom}' "
-      transformation << "-draw 'fill white rectangle 0,#{bottomleft} #{left},#{bottom-bottomright}' "
-      transformation << "-channel a -negate +channel -fill white -colorize 100% "
+
+      # Draw a quarter of the mask
+      transformation << "-draw 'fill black circle #{radius},#{radius} #{radius},0' "
+      transformation << "-draw 'fill black polygon #{radius},0 #{center_x},0 #{center_x},#{center_y} 0,#{center_y} 0,#{radius}' "
+
+      # Flip/flop the 1 quarter to cover the other 3 quarters
+      transformation << "\\( +clone -flip \\) -compose Multiply -composite "
+      transformation << "\\( +clone -flop \\) -compose Multiply -composite "
+
+      # Invert the mask so the part we want to preserve is transparent
+      # Also ensure that there is always a alpha channel present
+      transformation << "-channel a -negate +channel "
+
+      # Use `-compose Dst_Out` (instead of `-compose CopyOpacity`) because it does a better job
+      # at working both both the alpha channel of the mask as well as alpha channel of the
+      # origin image
       transformation << "\\) -compose Dst_Out -composite "
 
       Paperclip.run('convert', [
@@ -34,28 +46,17 @@ module Paperclip
       super file, options, attachment
 
       @options = options
-
-      @topleft      = parse_opts 'top_left'
-      @topright     = parse_opts 'top_right'
-      @bottomleft   = parse_opts 'bottom_left'
-      @bottomright  = parse_opts 'bottom_right'
-
-      @process = @topleft || @topright || @bottomleft || @bottomright
-    end
-
-    def parse_opts(key)
-      opt = @options["border_radius_#{key}".to_sym] || @options["border_radius_#{key.delete('_')}".to_sym] || @options[:border_radius]
-      opt.nil? ? nil : opt.to_i
+      @border_radius = options[:border_radius]
     end
 
     def make
       @thumbnail = super
 
-      if @process
+      if @border_radius
         destination = Tempfile.new([@basename, @format].compact.join("."))
         destination.binmode
 
-        return Paperclip::RoundCorners.round(@thumbnail, destination, @topleft, @topright, @bottomleft, @bottomright)
+        return Paperclip::RoundCorners.round(@thumbnail, destination, @border_radius)
       else
         return @thumbnail
       end
